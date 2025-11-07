@@ -206,7 +206,6 @@ public class UserService {
     // 로그아웃: 사용자 세션을 무효화하고 토큰을 취소합니다.
     public GlobalSignOutResponse globalSignOut(String accessToken) {
 
-        // GlobalSignOutRequest 객체 생성
         GlobalSignOutRequest signOutRequest = GlobalSignOutRequest.builder()
                 .accessToken(accessToken) // 무효화할 Access Token
                 .build();
@@ -215,11 +214,21 @@ public class UserService {
             // Cognito API 호출: 세션 무효화
             return cognitoClient.globalSignOut(signOutRequest);
 
+        } catch (NotAuthorizedException e) {
+            // 🚨 2. (수정) "Invalid Access Token" 등 토큰이 유효하지 않을 때 발생하는 예외
+            // 이 예외는 이미 로그아웃되었거나, 토큰이 만료/위조된 경우 발생합니다.
+            // 회원 탈퇴 API의 오류 메시지와 동일한 메시지를 던지도록 수정합니다.
+            System.err.println("Cognito Global Sign Out (NotAuthorizedException): " + e.getMessage());
+            
+            // GlobalExceptionHandler가 이 메시지를 잡아 JSON으로 변환합니다.
+            throw new RuntimeException("인증이 필요합니다. 유효한 토큰을 포함하여 요청하십시오.");
+
         } catch (Exception e) {
-            // 토큰이 이미 만료되었거나 다른 오류가 발생했을 수 있습니다.
-            // 클라이언트에는 성공으로 간주하고, 로그아웃 실패 처리 대신 경고 로그를 남길 수 있습니다.
-            System.err.println("Cognito Global Sign Out Warning/Error: " + e.getMessage());
-            throw new RuntimeException("로그아웃 처리 중 오류가 발생했습니다.", e);
+            // 🚨 3. (수정) 그 외의 예상치 못한 오류 (예: Cognito 서비스 다운)
+            System.err.println("Cognito Global Sign Out (General Error): " + e.getMessage());
+            
+            // GlobalExceptionHandler가 이 메시지를 잡아 JSON으로 변환합니다.
+            throw new RuntimeException("로그아웃 처리 중 서버 오류가 발생했습니다.", e);
         }
     }
 

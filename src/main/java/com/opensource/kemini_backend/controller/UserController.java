@@ -1,5 +1,6 @@
 package com.opensource.kemini_backend.controller;
 
+import com.opensource.kemini_backend.dto.ApiResponse; // 1. ApiResponse import
 import com.opensource.kemini_backend.dto.UpdateUserRequestDto;
 import com.opensource.kemini_backend.dto.UserResponseDto;
 import com.opensource.kemini_backend.service.UserService;
@@ -22,37 +23,36 @@ public class UserController {
         this.userService = userService;
     }
 
-    // 🚨 API Gateway/Nginx를 통해 인증된 사용자만 접근 가능
     @GetMapping("/me")
-    public ResponseEntity<UserResponseDto> getMyInfo(@AuthenticationPrincipal String authenticatedEmail) {
-        // @AuthenticationPrincipal을 통해 토큰에서 추출된 사용자 이메일을 받음
+    // 2. 반환 타입 변경 (데이터 타입 T = UserResponseDto)
+    public ResponseEntity<ApiResponse<UserResponseDto>> getMyInfo(@AuthenticationPrincipal String authenticatedEmail) {
         UserResponseDto user = userService.getUserInfo(authenticatedEmail);
-        return ResponseEntity.ok(user);
+        // 3. ApiResponse.success(데이터, 메시지)로 래핑
+        return ResponseEntity.ok(ApiResponse.success(user, "사용자 정보 조회 성공"));
     }
 
-    // U: 회원 정보 수정
     @PutMapping("/me")
-    public ResponseEntity<UserResponseDto> updateMyInfo(
+    // 2. 반환 타입 변경
+    public ResponseEntity<ApiResponse<UserResponseDto>> updateMyInfo(
         @AuthenticationPrincipal String authenticatedEmail,
         @RequestBody UpdateUserRequestDto request
     ) {
-        // 토큰에서 추출된 이메일로 사용자 정보를 수정합니다.
         userService.updateUser(authenticatedEmail, request); 
-        
-        // 수정된 정보를 다시 조회하여 반환합니다.
         UserResponseDto updatedUser = userService.getUserInfo(authenticatedEmail);
         
-        return ResponseEntity.ok(updatedUser);
+        // 3. ApiResponse.success(데이터, 메시지)로 래핑
+        return ResponseEntity.ok(ApiResponse.success(updatedUser, "사용자 정보 수정 성공"));
     }
 
-    // D: 회원 탈퇴 (Delete)
     @DeleteMapping("/me")
-    public ResponseEntity<String> deleteMyAccount(
+    // 2. 반환 타입 변경
+    public ResponseEntity<ApiResponse<Void>> deleteMyAccount(
         @AuthenticationPrincipal String authenticatedEmail
     ) {
-        // 토큰에서 추출된 이메일로 계정 삭제를 요청합니다.
         userService.deleteUser(authenticatedEmail);
+        String message = String.format("계정(%s)이 성공적으로 삭제되었습니다.", authenticatedEmail);
         
-        return ResponseEntity.ok("계정(" + authenticatedEmail + ")이 성공적으로 삭제되었습니다.");
+        // 3. ApiResponse.success(메시지)로 래핑
+        return ResponseEntity.ok(ApiResponse.success(message));
     }
 }

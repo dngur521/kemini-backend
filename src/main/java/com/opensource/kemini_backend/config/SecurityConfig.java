@@ -10,6 +10,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.opensource.kemini_backend.filter.CognitoHeaderAuthenticationFilter;
+import com.opensource.kemini_backend.exception.CustomAccessDeniedHandler;
+import com.opensource.kemini_backend.exception.CustomAuthenticationEntryPoint;
 
 import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityProviderClient;
 
@@ -18,9 +20,16 @@ import software.amazon.awssdk.services.cognitoidentityprovider.CognitoIdentityPr
 public class SecurityConfig {
     // 1. CognitoClient를 주입받기 위한 필드 및 생성자 추가
     private final CognitoIdentityProviderClient cognitoClient;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
-    public SecurityConfig(CognitoIdentityProviderClient cognitoClient) {
+    public SecurityConfig(
+        CognitoIdentityProviderClient cognitoClient,
+        CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+        CustomAccessDeniedHandler customAccessDeniedHandler ) {
         this.cognitoClient = cognitoClient;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
     }
 
     // 2. Filter를 Bean으로 정의하고 CognitoClient 주입
@@ -60,7 +69,14 @@ public class SecurityConfig {
         http
             .formLogin(AbstractHttpConfigurer::disable);
 
-
+        // 5. 🚨 예외 처리 핸들러 등록
+        http
+            .exceptionHandling(ex -> ex
+                // 401 (Unauthorized) 처리
+                .authenticationEntryPoint(customAuthenticationEntryPoint)
+                // 403 (Forbidden) 처리
+                .accessDeniedHandler(customAccessDeniedHandler)
+            );
         return http.build();
     }
 }

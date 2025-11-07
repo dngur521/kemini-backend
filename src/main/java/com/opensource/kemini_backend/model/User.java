@@ -13,7 +13,10 @@ import lombok.*;
 public class User {
 
     @Id
-    // Cognito ID(sub)를 Primary Key로 사용하거나, 여기서는 email을 PK로 사용
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 1. Long 타입 ID, 자동 증가 PK로 설정
+    private Long id;
+
+    @Column(unique = true, nullable = false) // 2. email은 PK가 아니지만, 고유해야 함
     private String email; 
 
     private String name;
@@ -32,6 +35,4 @@ public class User {
             this.phoneNumber = phoneNumber;
         }
     }
-
-    // 이메일 외의 다른 컬럼들은 필요에 따라 추가
 }
