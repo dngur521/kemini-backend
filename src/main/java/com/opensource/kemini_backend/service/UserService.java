@@ -233,36 +233,90 @@ public class UserService {
     }
 
     // 토큰 갱신
-public InitiateAuthResponse refreshToken(RefreshTokenRequestDto refreshRequest) {
-    String refreshToken = refreshRequest.refreshToken();
-    String email = refreshRequest.email();
+    public InitiateAuthResponse refreshToken(RefreshTokenRequestDto refreshRequest) {
+        String refreshToken = refreshRequest.refreshToken();
+        String email = refreshRequest.email();
 
-    // 🚨 SECRET_HASH 계산 (기존 유틸리티 재사용)
+        // 🚨 SECRET_HASH 계산 (기존 유틸리티 재사용)
         String secretHash = CognitoSecretHashUtil.calculateSecretHash(
                 clientId,
                 clientSecret,
                 email // Username (email)
         );
 
-    // AuthParameters 구성 (REFRESH_TOKEN, SECRET_HASH 포함)
-    Map<String, String> authParameters = new HashMap<>();
-    authParameters.put("REFRESH_TOKEN", refreshToken);
-    authParameters.put("SECRET_HASH", secretHash);
+        // AuthParameters 구성 (REFRESH_TOKEN, SECRET_HASH 포함)
+        Map<String, String> authParameters = new HashMap<>();
+        authParameters.put("REFRESH_TOKEN", refreshToken);
+        authParameters.put("SECRET_HASH", secretHash);
 
-    // InitiateAuthRequest 객체 생성
-    InitiateAuthRequest authRequest = InitiateAuthRequest.builder()
-            .clientId(clientId)
-            .authFlow(AuthFlowType.REFRESH_TOKEN_AUTH)
-            .authParameters(authParameters)
-            .build();
+        // InitiateAuthRequest 객체 생성
+        InitiateAuthRequest authRequest = InitiateAuthRequest.builder()
+                .clientId(clientId)
+                .authFlow(AuthFlowType.REFRESH_TOKEN_AUTH)
+                .authParameters(authParameters)
+                .build();
 
-    try {
-        // Congnito API 호출
-        return cognitoClient.initiateAuth(authRequest);
-    } catch (Exception e) {
-        // 오류는 GlobalExceptionHandler가 처리
-        throw new RuntimeException("토큰 갱신 실패: " + e.getMessage());
+        try {
+            // Congnito API 호출
+            return cognitoClient.initiateAuth(authRequest);
+        } catch (Exception e) {
+            // 오류는 GlobalExceptionHandler가 처리
+            throw new RuntimeException("토큰 갱신 실패: " + e.getMessage());
+        }
     }
-}
+
+    // 비밀번호 재설정 코드 요청
+    public void forgotPassword(ForgotPasswordRequestDto request) {
+        String email = request.email();
+
+        // SECRET_HASH 계산
+        String secretHash = CognitoSecretHashUtil.calculateSecretHash(
+                clientId,
+                clientSecret,
+                email
+        );
+
+        // Cognito ForgotPassword API 요청 객체 생성
+        ForgotPasswordRequest cognitoRequest = ForgotPasswordRequest.builder()
+                .clientId(clientId)
+                .username(email)
+                .secretHash(secretHash)
+                .build();
+
+        try {
+            cognitoClient.forgotPassword(cognitoRequest);
+        } catch (Exception e) {
+            // 존재하지 않는 사용자, 미확인 사용자 등
+            throw new RuntimeException("비밀번호 재설정 코드 요청 실패: " + e.getMessage());
+        }
+    }
+
+    // 새 비밀번호로 재설정
+    public void confirmForgotPassword(ConfirmForgotPasswordRequestDto request) {
+        String email = request.email();
+
+        // SECRET_HASH 계산
+        String secretHash = CognitoSecretHashUtil.calculateSecretHash(
+                clientId,
+                clientSecret,
+                email);
+
+        // Cognito ConfirmForgotPassword API 요청 객체 생성
+        ConfirmForgotPasswordRequest cognitoRequest = ConfirmForgotPasswordRequest.builder()
+                .clientId(clientId)
+                .username(email)
+                .confirmationCode(request.confirmationCode())
+                .password(request.newPassword())
+                .secretHash(secretHash)
+                .build();
+
+        try {
+            cognitoClient.confirmForgotPassword(cognitoRequest);
+        } catch (Exception e) {
+            // 코드 만료, 잘못된 코드 등
+            throw new RuntimeException("비밀번호 재설정 실패: " + e.getMessage());
+        }
+    }
+    
 }
 

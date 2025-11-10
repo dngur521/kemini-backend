@@ -1,7 +1,9 @@
 package com.opensource.kemini_backend.controller;
 
 import com.opensource.kemini_backend.dto.ApiResponse; // 1. ApiResponse import
+import com.opensource.kemini_backend.dto.ConfirmForgotPasswordRequestDto;
 import com.opensource.kemini_backend.dto.ConfirmRequestDto;
+import com.opensource.kemini_backend.dto.ForgotPasswordRequestDto;
 import com.opensource.kemini_backend.dto.SignUpRequestDto;
 import com.opensource.kemini_backend.service.UserService;
 import com.opensource.kemini_backend.dto.LoginRequestDto;
@@ -89,4 +91,31 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(tokens, "토큰 갱신 성공"));
     }
 
+    /**
+     * 비밀번호 재설정 코드 요청 API
+     */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+        @RequestBody ForgotPasswordRequestDto request
+    ) {
+        userService.forgotPassword(request);
+        
+        return ResponseEntity.ok(ApiResponse.success(
+            "'" + request.email() + "'로 비밀번호 재설정 코드를 발송했습니다. (이메일 또는 SMS)"
+        ));
+    }
+
+    /**
+     * 비밀번호 재설정 확인 API
+     */
+    @PostMapping("/confirm-forgot-password")
+    public ResponseEntity<ApiResponse<Void>> confirmForgotPassword(
+        @RequestBody ConfirmForgotPasswordRequestDto request
+    ) {
+        userService.confirmForgotPassword(request);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "비밀번호가 성공적으로 재설정되었습니다. 새 비밀번호로 로그인해주세요."));
+    }
+    
 }
