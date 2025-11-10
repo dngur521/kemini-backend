@@ -232,5 +232,37 @@ public class UserService {
         }
     }
 
+    // 토큰 갱신
+public InitiateAuthResponse refreshToken(RefreshTokenRequestDto refreshRequest) {
+    String refreshToken = refreshRequest.refreshToken();
+    String email = refreshRequest.email();
+
+    // 🚨 SECRET_HASH 계산 (기존 유틸리티 재사용)
+        String secretHash = CognitoSecretHashUtil.calculateSecretHash(
+                clientId,
+                clientSecret,
+                email // Username (email)
+        );
+
+    // AuthParameters 구성 (REFRESH_TOKEN, SECRET_HASH 포함)
+    Map<String, String> authParameters = new HashMap<>();
+    authParameters.put("REFRESH_TOKEN", refreshToken);
+    authParameters.put("SECRET_HASH", secretHash);
+
+    // InitiateAuthRequest 객체 생성
+    InitiateAuthRequest authRequest = InitiateAuthRequest.builder()
+            .clientId(clientId)
+            .authFlow(AuthFlowType.REFRESH_TOKEN_AUTH)
+            .authParameters(authParameters)
+            .build();
+
+    try {
+        // Congnito API 호출
+        return cognitoClient.initiateAuth(authRequest);
+    } catch (Exception e) {
+        // 오류는 GlobalExceptionHandler가 처리
+        throw new RuntimeException("토큰 갱신 실패: " + e.getMessage());
+    }
+}
 }
 

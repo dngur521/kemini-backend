@@ -5,6 +5,7 @@ import com.opensource.kemini_backend.dto.ConfirmRequestDto;
 import com.opensource.kemini_backend.dto.SignUpRequestDto;
 import com.opensource.kemini_backend.service.UserService;
 import com.opensource.kemini_backend.dto.LoginRequestDto;
+import com.opensource.kemini_backend.dto.RefreshTokenRequestDto;
 
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 
@@ -70,4 +71,22 @@ public class AuthController {
         // 3. ApiResponse.success(메시지)로 래핑
         return ResponseEntity.ok(ApiResponse.success("로그아웃이 완료되었습니다. 클라이언트의 토큰을 삭제하십시오."));
     }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<Map<String, String>>> refreshToken(
+        // 수정된 DTO(email, refreshToken)를 받음
+        @RequestBody RefreshTokenRequestDto request
+    ) {
+        // email과 refreshToken이 포함된 request를 서비스로 전달
+        InitiateAuthResponse response = userService.refreshToken(request);
+
+        // 갱신된 토큰 (Access Token, Id Token)
+        Map<String, String> tokens = Map.of(
+                "id_token", response.authenticationResult().idToken(),
+                "access_token", response.authenticationResult().accessToken()
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(tokens, "토큰 갱신 성공"));
+    }
+
 }
