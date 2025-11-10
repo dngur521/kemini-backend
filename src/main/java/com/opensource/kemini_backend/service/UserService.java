@@ -40,14 +40,14 @@ public class UserService {
             AttributeType.builder().name("phone_number").value(signUpRequest.phoneNumber()).build()
         );
 
-        // 1. SECRET_HASH 계산
+        // SECRET_HASH 계산
         String secretHash = CognitoSecretHashUtil.calculateSecretHash(
             clientId, 
             clientSecret, 
             signUpRequest.email() // Username (여기서는 email)
         );
 
-        // 2. Cognito SignUp 요청 객체 생성 (SECRET_HASH 포함)
+        // Cognito SignUp 요청 객체 생성 (SECRET_HASH 포함)
         SignUpRequest cognitoSignUpRequest = SignUpRequest.builder()
                 .clientId(clientId)
                 .secretHash(secretHash)
@@ -57,14 +57,26 @@ public class UserService {
                 .build();
 
         try {
+            // Cognito에 사용자 등록 (UNCONFIRMED 상태로 생성됨)
             cognitoClient.signUp(cognitoSignUpRequest);
+
+            // ----------------------------------------------------------------
+            // 🚨 (이 부분이 핵심) 관리자 권한으로 사용자 즉시 확인
+            AdminConfirmSignUpRequest adminConfirmRequest = AdminConfirmSignUpRequest.builder()
+                .userPoolId(userPoolId) // @Value로 주입된 User Pool ID
+                .username(signUpRequest.email())
+                .build();
+            
+            cognitoClient.adminConfirmSignUp(adminConfirmRequest);
+
+            // ----------------------------------------------------------------
             
             // DB에 부가 정보 저장
             User newUser = User.builder()
                 .email(signUpRequest.email())
                 .name(signUpRequest.name())
                 .phoneNumber(signUpRequest.phoneNumber())
-                .status("UNCONFIRMED") 
+                .status("CONFIRMED") // "UNCONFIRMED" -> "CONFIRMED"로 변경
                 .build();
             userRepository.save(newUser);
 
@@ -74,7 +86,7 @@ public class UserService {
         }
     }
     
-    // C: 계정 확인 (Cognito Confirm)
+    // C: 계정 확인 (Cognito Confirm) (11/10~ 현재는 사용 안함)
     public void confirmSignUp(ConfirmRequestDto confirmRequest) {
 
         String username = confirmRequest.email();

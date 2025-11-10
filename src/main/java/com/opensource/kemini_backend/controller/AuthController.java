@@ -32,9 +32,11 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> signUp(@RequestBody SignUpRequestDto request) {
         userService.signUp(request);
         // 3. ApiResponse.success(메시지)로 래핑
-        return ResponseEntity.ok(ApiResponse.success("회원가입 성공. 이메일로 발송된 코드를 확인해주세요."));
+        // return ResponseEntity.ok(ApiResponse.success("회원가입 성공. 이메일로 발송된 코드를 확인해주세요."));
+        return ResponseEntity.ok(ApiResponse.success("회원가입 성공. 즉시 로그인할 수 있습니다."));
     }
     
+    // 11/10~ 사용 안함
     @PostMapping("/confirm")
     // 2. 반환 타입 변경
     public ResponseEntity<ApiResponse<Void>> confirmUser(@RequestBody ConfirmRequestDto request) {
