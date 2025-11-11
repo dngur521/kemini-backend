@@ -1,20 +1,20 @@
 package com.opensource.kemini_backend.controller;
 
 import com.opensource.kemini_backend.dto.ApiResponse; // 1. ApiResponse import
-import com.opensource.kemini_backend.dto.ConfirmForgotPasswordRequestDto;
-import com.opensource.kemini_backend.dto.ConfirmRequestDto;
-import com.opensource.kemini_backend.dto.ForgotPasswordRequestDto;
+import com.opensource.kemini_backend.dto.FindEmailRequestDto;
 import com.opensource.kemini_backend.dto.SignUpRequestDto;
 import com.opensource.kemini_backend.service.UserService;
 import com.opensource.kemini_backend.dto.LoginRequestDto;
 import com.opensource.kemini_backend.dto.RefreshTokenRequestDto;
+import com.opensource.kemini_backend.dto.ResetPasswordByQuestionRequestDto;
+import com.opensource.kemini_backend.dto.SecurityQuestionResponseDto;
 
 import software.amazon.awssdk.services.cognitoidentityprovider.model.InitiateAuthResponse;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -34,15 +34,6 @@ public class AuthController {
         // 3. ApiResponse.success(메시지)로 래핑
         // return ResponseEntity.ok(ApiResponse.success("회원가입 성공. 이메일로 발송된 코드를 확인해주세요."));
         return ResponseEntity.ok(ApiResponse.success("회원가입 성공. 즉시 로그인할 수 있습니다."));
-    }
-    
-    // 11/10~ 사용 안함
-    @PostMapping("/confirm")
-    // 2. 반환 타입 변경
-    public ResponseEntity<ApiResponse<Void>> confirmUser(@RequestBody ConfirmRequestDto request) {
-        userService.confirmSignUp(request);
-        // 3. ApiResponse.success(메시지)로 래핑
-        return ResponseEntity.ok(ApiResponse.success("계정 확인 완료. 이제 로그인할 수 있습니다."));
     }
     
     @PostMapping("/login")
@@ -93,31 +84,39 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(tokens, "토큰 갱신 성공"));
     }
 
-    /**
-     * 비밀번호 재설정 코드 요청 API
-     */
-    @PostMapping("/forgot-password")
-    public ResponseEntity<ApiResponse<Void>> forgotPassword(
-        @RequestBody ForgotPasswordRequestDto request
+    // 아이디(이메일) 찾기 API
+    @PostMapping("/find-email")
+    public ResponseEntity<ApiResponse<Map<String, String>>> findEmail(
+        @RequestBody FindEmailRequestDto request
     ) {
-        userService.forgotPassword(request);
-        
+        String email = userService.findEmailByQuestion(request);
+
+        // 이메일 정보를 data에 담아 반환
         return ResponseEntity.ok(ApiResponse.success(
-            "'" + request.email() + "'로 비밀번호 재설정 코드를 발송했습니다. (이메일 또는 SMS)"
-        ));
+                Map.of("email", email),
+                "이메일 찾기에 성공했습니다."));
     }
 
-    /**
-     * 비밀번호 재설정 확인 API
-     */
-    @PostMapping("/confirm-forgot-password")
-    public ResponseEntity<ApiResponse<Void>> confirmForgotPassword(
-        @RequestBody ConfirmForgotPasswordRequestDto request
+    // 비밀번호 재설정 API (보안 질문 기반)
+    @PostMapping("/reset-password-by-question")
+    public ResponseEntity<ApiResponse<Void>> resetPasswordByQuestion(
+        @RequestBody ResetPasswordByQuestionRequestDto request
     ) {
-        userService.confirmForgotPassword(request);
+        userService.resetPasswordByQuestion(request);
 
         return ResponseEntity.ok(ApiResponse.success(
                 "비밀번호가 성공적으로 재설정되었습니다. 새 비밀번호로 로그인해주세요."));
+    }
+    
+    // 보안 질문 목록 조회 API
+    @GetMapping("/questions")
+    public ResponseEntity<ApiResponse<List<SecurityQuestionResponseDto>>> getSecurityQuestions() {
+
+        List<SecurityQuestionResponseDto> questions = userService.getSecurityQuestions();
+
+        return ResponseEntity.ok(ApiResponse.success(
+                questions,
+                "보안 질문 목록 조회에 성공했습니다."));
     }
     
 }

@@ -22,6 +22,14 @@ public class User {
     private String name;
 
     private String phoneNumber;
+
+    // 보안 질문 ID
+    @Column(name = "ask_id")
+    private Long askId;
+
+    // 보안 질문 답변
+    @Column(name = "ask_answer")
+    private String askAnswer;
     
     // Cognito 상태 추적용: UNCONFIRMED, CONFIRMED
     private String status; 

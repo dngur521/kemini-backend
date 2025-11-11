@@ -11,4 +11,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
     void deleteByEmail(String email);
     
     Optional<User> findByEmail(String email);
+
+    // 아이디 찾기를 위한 3개 필드 조회
+    Optional<User> findByPhoneNumberAndAskIdAndAskAnswer(
+        String phoneNumber, 
+        Long askId, 
+        String askAnswer
+    );
 }
