@@ -2,73 +2,88 @@ package com.opensource.kemini_backend.service;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import java.io.IOException;
-import java.util.UUID;
+import java.net.URL;
+import java.time.Duration;
 
 @Service
 public class S3Service {
 
+    private final S3Presigner s3Presigner;
     private final S3Client s3Client;
     private final String bucketName;
     private final String s3Region;
 
-    // 1. (의존성 추가 1단계 완료 시) S3Client는 자동 주입됩니다.
-    public S3Service(S3Client s3Client,
+    public S3Service(S3Presigner s3Presigner,
+                     S3Client s3Client,
                      @Value("${aws.s3.bucket}") String bucketName,
                      @Value("${spring.cloud.aws.region.static}") String s3Region) {
-        this.s3Client = s3Client;
+        this.s3Presigner = s3Presigner;
+        this.s3Client = s3Client; // 5. 🚨 할당
         this.bucketName = bucketName;
         this.s3Region = s3Region;
     }
 
     /**
-     * 파일을 S3에 직접 업로드하고, 영구 URL을 반환합니다.
-     * @param file 클라이언트(Unity)로부터 받은 파일
-     * @return S3에 저장된 파일의 전체 URL
-     * @throws IOException
+     * S3에 업로드할 1회용 Presigned URL을 생성합니다. (PUT 방식)
+     * @param objectKey S3에 저장될 전체 경로 (예: users/1/123/scene.dat)
+     * @return 1회용 업로드 URL
      */
-    public String uploadFile(MultipartFile file) throws IOException {
-        
-        // 1. 파일 확장자 추출 (예: .jpg)
-        String extension = "";
-        String originalFileName = file.getOriginalFilename();
-        if (originalFileName != null && originalFileName.contains(".")) {
-            extension = originalFileName.substring(originalFileName.lastIndexOf("."));
+    public String generatePresignedUploadUrl(String objectKey) {
+        try {
+            PutObjectRequest objectRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .build();
+
+            PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                    .signatureDuration(Duration.ofMinutes(10)) // 10분 유효
+                    .putObjectRequest(objectRequest)
+                    .build();
+
+            URL url = s3Presigner.presignPutObject(presignRequest).url();
+            return url.toString();
+
+        } catch (Exception e) {
+            throw new RuntimeException("Presigned URL 생성 실패: " + e.getMessage());
         }
+    }
 
-        // 2. S3에 저장될 고유 키(경로) 생성
-        // 예: uploads/test/랜덤UUID.jpg
-        // (DB 저장을 안 하므로, 'test' 폴더에 모두 저장)
-        String objectKey = String.format("uploads/test/%s%s",
-                UUID.randomUUID(),
-                extension
-        );
-
-        // 3. S3 업로드 요청 객체 생성
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucketName)
-                .key(objectKey)
-                .contentType(file.getContentType()) // (예: "image/jpeg")
-                .contentLength(file.getSize())
-                .build();
-
-        // 4. S3로 파일 전송 (핵심 로직)
-        s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(
-            file.getInputStream(), 
-            file.getSize()
-        ));
-
-        // 5. 저장된 파일의 영구 URL 반환
-        // 예: https://kemini-bucket-이름.s3.ap-northeast-2.amazonaws.com/uploads/test/UUID.jpg
+    /**
+     * S3 키(경로)를 기반으로 파일에 접근할 수 있는 영구 URL을 생성합니다.
+     */
+    public String getPublicFileUrl(String objectKey) {
         return String.format("https://%s.s3.%s.amazonaws.com/%s",
                 bucketName,
                 s3Region,
                 objectKey
         );
+    }
+    /**
+     * 6. 🚨 (새로 추가) S3 객체 삭제 메서드
+     */
+    public void deleteFile(String objectKey) {
+        if (objectKey == null || objectKey.isBlank()) {
+            return; // 삭제할 키가 없으면 무시
+        }
+        
+        try {
+            DeleteObjectRequest deleteRequest = DeleteObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .build();
+            
+            s3Client.deleteObject(deleteRequest);
+            
+        } catch (Exception e) {
+            // S3에서 파일 삭제 실패 시, 일단 로그만 남기고 DB 삭제는 진행되도록 함
+            // (운영 정책에 따라 이 부분에서 예외를 던져 DB 롤백을 유도할 수도 있음)
+            System.err.println("S3 파일 삭제 실패: " + objectKey + ", Error: " + e.getMessage());
+        }
     }
 }
