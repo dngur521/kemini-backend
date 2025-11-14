@@ -1,0 +1,17 @@
+# 1. (필요시) Gradle 실행 권한 부여
+chmod +x ./gradlew
+
+# 2. Gradle로 프로젝트 빌드 (테스트는 건너뛰어 속도 향상)
+./gradlew build -x test
+
+sudo systemctl daemon-reload
+
+sudo systemctl start kemini
+
+sudo systemctl enable kemini # (재부팅 시 자동 시작)
+
+sudo systemctl status kemini
+
+journalctl -u kemini -f
+
+sudo systemctl stop kemini
