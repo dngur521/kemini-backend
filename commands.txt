@@ -15,3 +15,7 @@ sudo systemctl status kemini
 journalctl -u kemini -f
 
 sudo systemctl stop kemini
+
+sudo nano /etc/nginx/sites-available/springboot.conf
+
+sudo systemctl reload nginx
