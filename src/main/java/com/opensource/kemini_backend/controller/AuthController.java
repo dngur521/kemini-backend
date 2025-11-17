@@ -1,6 +1,7 @@
 package com.opensource.kemini_backend.controller;
 
 import com.opensource.kemini_backend.dto.ApiResponse; // 1. ApiResponse import
+import com.opensource.kemini_backend.dto.CheckEmailRequestDto;
 import com.opensource.kemini_backend.dto.FindEmailRequestDto;
 import com.opensource.kemini_backend.dto.SignUpRequestDto;
 import com.opensource.kemini_backend.service.UserService;
@@ -119,4 +120,16 @@ public class AuthController {
                 "보안 질문 목록 조회에 성공했습니다."));
     }
     
+    // 아이디(이메일) 중복 확인 API
+    @PostMapping("/check-email")
+    public ResponseEntity<ApiResponse<Void>> checkEmailDuplication(
+        @RequestBody CheckEmailRequestDto request
+    ) {
+        // 1. 서비스 호출 (성공 시 메시지 반환, 실패 시 예외 발생)
+        String successMessage = userService.checkEmailAvailability(request.email());
+        
+        // 2. 성공 응답 반환 (ApiResponse.success(메시지))
+        return ResponseEntity.ok(ApiResponse.success(successMessage));
+    }
+
 }

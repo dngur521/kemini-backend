@@ -7,6 +7,8 @@ import com.opensource.kemini_backend.repository.SecurityQuestionRepository;
 import com.opensource.kemini_backend.repository.UserRepository;
 import com.opensource.kemini_backend.utility.CognitoSecretHashUtil;
 
+import org.springframework.transaction.annotation.Transactional;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class UserService {
 
     @Value("${aws.cognito.clientId}")
@@ -356,5 +359,21 @@ public class UserService {
             ))
             .collect(Collectors.toList());
     }
-}
 
+    // 아이디(이메일) 중복 확인
+    @Transactional(readOnly = true) // 읽기 전용 트랜잭션
+    public String checkEmailAvailability(String email) {
+        // 1. DB에서 이메일 조회
+        Optional<User> existingUser = userRepository.findByEmail(email);
+
+        if (existingUser.isPresent()) {
+            // 2. 🚨 이미 존재하면, 예외를 발생시킴
+            // (GlobalExceptionHandler가 400 Bad Request로 처리)
+            throw new RuntimeException("이미 사용 중인 이메일입니다.");
+        } else {
+            // 3. 존재하지 않으면, 성공 메시지 반환
+            return "사용 가능한 이메일입니다.";
+        }
+    }
+    
+}
