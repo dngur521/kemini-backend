@@ -12,19 +12,23 @@ import lombok.Setter;
 @NoArgsConstructor
 public class VirtualEnvironment {
 
+    // virtualEnvId PK
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 1. "virtualEnvId"로 사용될 PK
+    private Long id; 
 
+    // 가상환경 이름
     @Column(nullable = false)
-    private String name; // (예: "My First World")
+    private String name; 
 
+    // S3 버킷의 경로 (e.g, users/1/123/scene.dat)
     @Column(name = "s3_object_key", unique = true)
-    private String s3ObjectKey; // 2. "s3 버킷의 경로" (예: users/1/123/scene.dat)
+    private String s3ObjectKey; 
 
+    // user_id: 회원 id (FK)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user; // 3. "user_id" (FK)
+    private User user; 
 
     public VirtualEnvironment(User user, String name) {
         this.user = user;

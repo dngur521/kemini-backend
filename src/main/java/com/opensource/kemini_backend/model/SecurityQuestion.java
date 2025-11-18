@@ -15,16 +15,12 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class SecurityQuestion {
 
-    /**
-     * 질문 ID (이것이 User 엔티티의 askId가 됩니다)
-     */
+    // 질문 ID (이것이 User 엔티티의 askId가 됩니다)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /**
-     * 질문 내용 (예: "졸업한 초등학교 이름은?")
-     */
+    // 질문 내용 (예: "졸업한 초등학교 이름은?")
     @Column(nullable = false, unique = true)
     private String questionText;
 }

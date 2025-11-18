@@ -1,7 +1,7 @@
 package com.opensource.kemini_backend.filter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.opensource.kemini_backend.dto.ApiResponse; // 1. ApiResponse import
+import com.opensource.kemini_backend.dto.ApiResponse;
 import com.opensource.kemini_backend.dto.ErrorResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -49,7 +49,6 @@ public class CognitoHeaderAuthenticationFilter extends OncePerRequestFilter {
             if (!isTokenValidOnline(token)) {
                 logger.warn("Online token validation failed (Signed out or expired). Returning 401.");
                 
-                // 2. sendErrorResponse 호출 (이전과 동일)
                 sendErrorResponse(response, HttpStatus.UNAUTHORIZED, "TOKEN_INVALID", "토큰이 유효하지 않거나 만료되었습니다. 다시 로그인해주세요.");
                 return; 
             }
@@ -105,10 +104,8 @@ public class CognitoHeaderAuthenticationFilter extends OncePerRequestFilter {
 
         ErrorResponse errorResponse = new ErrorResponse(errorCode, message);
         
-        // 3. ErrorResponse 대신 ApiResponse.error()로 래핑
         ApiResponse<Void> apiResponse = ApiResponse.error(errorResponse);
         
-        // 4. apiResponse를 JSON 문자열로 변환
         String jsonResponse = objectMapper.writeValueAsString(apiResponse);
 
         response.getWriter().write(jsonResponse);

@@ -7,9 +7,7 @@ import org.springframework.web.client.RestTemplate;
 @Configuration
 public class AppConfig {
 
-    /**
-     * Spring이 다른 서버와 HTTP 통신을 할 때 사용할 RestTemplate Bean
-     */
+    // Spring이 다른 서버와 HTTP 통신을 할 때 사용할 RestTemplate Bean
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();

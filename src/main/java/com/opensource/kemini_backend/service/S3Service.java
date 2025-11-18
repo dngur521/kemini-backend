@@ -65,7 +65,7 @@ public class S3Service {
         );
     }
     /**
-     * 6. 🚨 (새로 추가) S3 객체 삭제 메서드
+     * S3 객체 삭제 메서드
      */
     public void deleteFile(String objectKey) {
         if (objectKey == null || objectKey.isBlank()) {

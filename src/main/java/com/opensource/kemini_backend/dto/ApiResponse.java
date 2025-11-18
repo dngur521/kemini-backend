@@ -14,8 +14,8 @@ public class ApiResponse<T> {
 
     private final String status; // "success" 또는 "error"
     private final String message;
-    private final T data; // 2. 성공 시 데이터
-    private final ErrorResponse error; // 3. 실패 시 에러 정보
+    private final T data; // 성공 시 데이터
+    private final ErrorResponse error; // 실패 시 에러 정보
 
     // 성공 응답 생성자
     private ApiResponse(String status, String message, T data) {

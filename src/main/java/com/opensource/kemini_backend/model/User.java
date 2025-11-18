@@ -12,15 +12,19 @@ import lombok.*;
 @Table(name = "users")
 public class User {
 
+    // ID: Long 타입, 자동 증가 PK로 설정
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // 1. Long 타입 ID, 자동 증가 PK로 설정
+    @GeneratedValue(strategy = GenerationType.IDENTITY) 
     private Long id;
 
-    @Column(unique = true, nullable = false) // 2. email은 PK가 아니지만, 고유해야 함
+    // email: PK가 아니지만, 고유해야 함
+    @Column(unique = true, nullable = false) 
     private String email; 
 
+    // 이름
     private String name;
 
+    // 전화번호
     private String phoneNumber;
 
     // 보안 질문 ID

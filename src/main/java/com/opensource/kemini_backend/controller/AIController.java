@@ -21,10 +21,8 @@ public class AIController {
         this.aiService = aiService;
     }
 
-    /**
-     * (인증된) Unity 클라이언트로부터 이미지를 받아 AI 서버로 중계(proxy)합니다.
-     * (이 코드는 변경할 필요가 없습니다.)
-     */
+
+    // Unity 클라이언트로부터 이미지를 받아 AI 서버로 중계(proxy)하는 API
     @PostMapping("/generate-model")
     public ResponseEntity<byte[]> generateModel(
             @RequestParam("file") MultipartFile file,

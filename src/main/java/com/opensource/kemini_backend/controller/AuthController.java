@@ -28,8 +28,8 @@ public class AuthController {
         this.userService = userService;
     }
 
+    // 회원가입 API
     @PostMapping("/signup")
-    // 2. 반환 타입 변경
     public ResponseEntity<ApiResponse<Void>> signUp(@RequestBody SignUpRequestDto request) {
         userService.signUp(request);
         // 3. ApiResponse.success(메시지)로 래핑
@@ -37,8 +37,8 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("회원가입 성공. 즉시 로그인할 수 있습니다."));
     }
     
+    // 로그인 API
     @PostMapping("/login")
-    // 2. 반환 타입 변경 (데이터 타입 T = Map<String, String>)
     public ResponseEntity<ApiResponse<Map<String, String>>> login(@RequestBody LoginRequestDto request) {
         InitiateAuthResponse response = userService.login(request);
         
@@ -47,12 +47,11 @@ public class AuthController {
             "access_token", response.authenticationResult().accessToken(),
             "refresh_token", response.authenticationResult().refreshToken()
         );
-        // 3. ApiResponse.success(데이터, 메시지)로 래핑
         return ResponseEntity.ok(ApiResponse.success(tokens, "로그인 성공"));
     }
 
+    // 로그아웃 API
     @PostMapping("/logout")
-    // 2. 반환 타입 변경
     public ResponseEntity<ApiResponse<Void>> logout(
         @RequestHeader("Authorization") String authorizationHeader
     ) {
@@ -68,6 +67,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success("로그아웃이 완료되었습니다. 클라이언트의 토큰을 삭제하십시오."));
     }
 
+    // refresh token으로 access token 갱신 API (자동로그인 시 사용)
     @PostMapping("/refresh")
     public ResponseEntity<ApiResponse<Map<String, String>>> refreshToken(
         // 수정된 DTO(email, refreshToken)를 받음

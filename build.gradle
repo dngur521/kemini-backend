@@ -46,6 +46,8 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 
     implementation 'org.json:json:20240303'
+
+    implementation 'org.mariadb.jdbc:mariadb-java-client'
 }
 
 tasks.named('test') {

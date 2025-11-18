@@ -17,9 +17,8 @@ public class AIService {
 
     private final RestTemplate restTemplate;
     private final String aiServerUrl;
-    // 1. 🚨 API Key 필드 삭제
 
-    // 2. 🚨 생성자 수정 (API Key 주입 제거)
+    // 생성자
     public AIService(RestTemplate restTemplate,
                      @Value("${ai.server.url}") String aiServerUrl) {
         this.restTemplate = restTemplate;
@@ -31,12 +30,11 @@ public class AIService {
      */
     public byte[] generate3DModel(MultipartFile imageFile) {
         try {
-            // 3. 🚨 헤더 생성 (API 키 설정 로직 없음)
+            // 헤더 생성
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            // 4. 🚨 (삭제) headers.setBearerAuth(...) 줄이 완전히 사라짐
 
-            // 5. AI 서버로 보낼 'file' 폼 데이터 생성
+            // AI 서버로 보낼 'file' 폼 데이터 생성
             ByteArrayResource fileAsResource = new ByteArrayResource(imageFile.getBytes()) {
                 @Override
                 public String getFilename() {
@@ -46,17 +44,17 @@ public class AIService {
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("file", fileAsResource);
 
-            // 6. 헤더(API 키 없음)와 바디를 합쳐 HTTP 요청 엔티티 생성
+            // 헤더와 바디를 합쳐 HTTP 요청 엔티티 생성
             HttpEntity<MultiValueMap<String, Object>> requestEntity = new HttpEntity<>(body, headers);
 
-            // 7. 🚨 AI 서버에 POST 요청 (byte[].class로 응답 받음)
+            // AI 서버에 POST 요청 (byte[].class로 응답 받음)
             ResponseEntity<byte[]> response = restTemplate.postForEntity(
                 aiServerUrl,
                 requestEntity,
                 byte[].class
             );
 
-            // 8. AI 서버가 보낸 3D 모델(바이너리)을 그대로 반환
+            // AI 서버가 보낸 3D 모델(바이너리)을 그대로 반환
             return response.getBody();
 
         } catch (Exception e) {

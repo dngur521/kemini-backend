@@ -33,6 +33,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final SecurityQuestionRepository questionRepository;
 
+    // 생성자
     public UserService(
         CognitoIdentityProviderClient cognitoClient,
         UserRepository userRepository,
@@ -49,35 +50,35 @@ public class UserService {
             return phoneNumber; 
         }
 
-        // 1. 혹시 모를 하이픈(-) 제거
+        // 혹시 모를 하이픈(-) 제거
         String digits = phoneNumber.replaceAll("-", "");
 
-        // 2. 이미 +82로 시작하는 올바른 형식인가?
+        // 이미 +82로 시작하는 올바른 형식인가?
         if (digits.startsWith("+82")) {
             return digits;
         }
 
-        // 3. 010, 011 등 '0'으로 시작하는 한국 형식인가?
+        // 010, 011 등 '0'으로 시작하는 한국 형식인가?
         if (digits.startsWith("01")) {
             // 맨 앞의 '0'을 제거하고 '+82'를 붙입니다.
             return "+82" + digits.substring(1);
         }
 
-        // 4. 그 외의 형식은 Cognito가 어차피 거부할 것이므로 그대로 반환
+        // 그 외의 형식은 Cognito가 어차피 거부할 것이므로 그대로 반환
         return digits;
     }
 
-    // signUp 메서드
+    // 회원가입 메서드
     public void signUp(SignUpRequestDto signUpRequest) {
         
-        // 2-1. ⭐️ 전화번호 변환
+        // 전화번호 변환
         String normalizedPhone = normalizePhoneNumber(signUpRequest.phoneNumber());
 
-        // 2-2. ⭐️ 변환된 번호로 Cognito 속성 생성
+        // 변환된 번호로 Cognito 속성 생성
         List<AttributeType> userAttributes = List.of(
             AttributeType.builder().name("email").value(signUpRequest.email()).build(),
             AttributeType.builder().name("name").value(signUpRequest.name()).build(),
-            AttributeType.builder().name("phone_number").value(normalizedPhone).build() // 👈 수정됨
+            AttributeType.builder().name("phone_number").value(normalizedPhone).build()
         );
 
         String secretHash = CognitoSecretHashUtil.calculateSecretHash(
@@ -103,11 +104,11 @@ public class UserService {
                 .build();
             cognitoClient.adminConfirmSignUp(adminConfirmRequest);
             
-            // 2-3. ⭐️ DB에도 변환된 번호로 저장 (데이터 일관성)
+            //DB에도 변환된 번호로 저장 (데이터 일관성)
             User newUser = User.builder()
                 .email(signUpRequest.email())
                 .name(signUpRequest.name())
-                .phoneNumber(normalizedPhone) // 👈 수정됨
+                .phoneNumber(normalizedPhone)
                 .status("CONFIRMED") 
                 .askId(signUpRequest.askId())
                 .askAnswer(signUpRequest.askAnswer())
@@ -115,7 +116,6 @@ public class UserService {
             userRepository.save(newUser);
 
         } catch (Exception e) {
-            // "Invalid phone number format" 오류는 이제 발생하지 않음
             throw new RuntimeException("회원가입 오류: " + e.getMessage());
         }
     }
@@ -123,13 +123,13 @@ public class UserService {
     // 아이디(이메일) 찾기 (보안 질문 기반)
     public String findEmailByQuestion(FindEmailRequestDto request) {
         String normalizedPhone = normalizePhoneNumber(request.phoneNumber());
-        // 1. DB에서 3가지 정보가 일치하는 사용자를 찾음
+        // DB에서 3가지 정보가 일치하는 사용자를 찾음
         User user = userRepository.findByPhoneNumberAndAskIdAndAskAnswer(
                 normalizedPhone,
                 request.askId(),
-                request.askAnswer()).orElseThrow(() -> new RuntimeException("일치하는 사용자 정보가 없습니다.")); // 2. 없으면 예외
+                request.askAnswer()).orElseThrow(() -> new RuntimeException("일치하는 사용자 정보가 없습니다.")); // 없으면 예외
 
-        // 3. 있으면 이메일 반환
+        // 있으면 이메일 반환
         return user.getEmail();
     }
 
@@ -137,25 +137,25 @@ public class UserService {
     public void resetPasswordByQuestion(ResetPasswordByQuestionRequestDto request) {
         String normalizedPhone = normalizePhoneNumber(request.phoneNumber());
 
-        // 1. DB에서 이메일로 사용자를 찾음
+        // DB에서 이메일로 사용자를 찾음
         User user = userRepository.findByEmail(request.email())
             .orElseThrow(() -> new RuntimeException("일치하는 사용자 정보가 없습니다."));
 
-        // 2. DB 정보와 입력된 정보가 모두 일치하는지 확인
+        // DB 정보와 입력된 정보가 모두 일치하는지 확인
         if (!user.getPhoneNumber().equals(normalizedPhone) ||
             !user.getAskId().equals(request.askId()) ||
             !user.getAskAnswer().equals(request.askAnswer())) 
         {
-            // 3. 하나라도 틀리면 예외
+            // 하나라도 틀리면 예외
             throw new RuntimeException("입력한 정보가 일치하지 않습니다.");
         }
 
-        // 4. 모든 정보가 일치하면, Cognito 비밀번호를 강제 재설정
+        // 모든 정보가 일치하면, Cognito 비밀번호를 강제 재설정
         AdminSetUserPasswordRequest adminSetPasswordRequest = AdminSetUserPasswordRequest.builder()
             .userPoolId(userPoolId)
             .username(request.email())
             .password(request.newPassword())
-            .permanent(true) // 5. true로 설정해야 사용자가 로그인 가능
+            .permanent(true) // true로 설정해야 사용자가 로그인 가능
             .build();
 
         try {
@@ -166,18 +166,18 @@ public class UserService {
         }
     }
 
-    // R: 사용자 정보 조회 (인증된 사용자용)
+    // 사용자 정보 조회 (인증된 사용자용)
     public UserResponseDto getUserInfo(String email) {
         User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다."));
+                    .orElseThrow(() -> new RuntimeException("사용자 정보를 찾을 수 없습니다.")); // 예외처리
         
         return new UserResponseDto(user.getEmail(), user.getName(), user.getPhoneNumber(), user.getStatus());
     }
     
-    // U: 사용자 정보 수정 (UpdateUserRequestDto 필요)
+    // 사용자 정보 수정 (UpdateUserRequestDto 필요)
     public void updateUser(String email, UpdateUserRequestDto updateRequest) {
 
-        // 1. RDS DB 정보 수정 및 저장
+        // DB 정보 수정 및 저장
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
 
@@ -185,7 +185,7 @@ public class UserService {
         user.updateDetails(updateRequest.name(), updateRequest.phoneNumber());
         userRepository.save(user);
 
-        // 2. 🚨 Cognito 속성 동기화 (Admin API 사용)
+        // Cognito 속성 동기화 (Admin API 사용)
         List<AttributeType> attributesToUpdate = new ArrayList<>();
 
         if (updateRequest.name() != null) {
@@ -212,10 +212,10 @@ public class UserService {
         }
     }
 
-    // D: 사용자 삭제 (Cognito AdminDeleteUser + DB Delete 필요)
+    // 사용자 삭제 (Cognito AdminDeleteUser + DB Delete 필요)
     public void deleteUser(String email) {
 
-        // 1. Cognito 사용자 계정 삭제 (Admin API 사용)
+        // Cognito 사용자 계정 삭제 (Admin API 사용)
         // 서버에서 관리자 권한으로 삭제하므로 사용자 토큰이 필요 없습니다.
         AdminDeleteUserRequest cognitoDeleteReq = AdminDeleteUserRequest.builder()
                 .userPoolId(userPoolId) // @Value로 주입된 User Pool ID
@@ -229,7 +229,7 @@ public class UserService {
             System.err.println("Cognito 사용자 삭제 실패: " + e.getMessage());
         }
 
-        // 2. 🚨 RDS DB 사용자 레코드 삭제
+        // DB 사용자 레코드 삭제
         userRepository.deleteByEmail(email);
     }
 
@@ -237,19 +237,19 @@ public class UserService {
     public InitiateAuthResponse login(LoginRequestDto loginRequest) {
         String username = loginRequest.email();
 
-        // 1. 🚨 SECRET_HASH 계산
+        // SECRET_HASH 계산
         String secretHash = CognitoSecretHashUtil.calculateSecretHash(
                 clientId,
                 clientSecret,
                 username);
 
-        // 2. AuthParameters 구성 (USERNAME, PASSWORD, SECRET_HASH 포함)
+        // AuthParameters 구성 (USERNAME, PASSWORD, SECRET_HASH 포함)
         Map<String, String> authParameters = new HashMap<>();
         authParameters.put("USERNAME", username);
         authParameters.put("PASSWORD", loginRequest.password());
         authParameters.put("SECRET_HASH", secretHash); // 🚨 SECRET_HASH 추가
 
-        // 3. InitiateAuthRequest 객체 생성
+        // InitiateAuthRequest 객체 생성
         InitiateAuthRequest authRequest = InitiateAuthRequest.builder()
                 .clientId(clientId)
                 .authFlow(AuthFlowType.USER_PASSWORD_AUTH) // 일반 인증 흐름 사용
@@ -257,7 +257,7 @@ public class UserService {
                 .build();
 
         try {
-            // 4. Cognito API 호출 및 응답 반환
+            // Cognito API 호출 및 응답 반환
             return cognitoClient.initiateAuth(authRequest);
         } catch (Exception e) {
             // 잘못된 ID/PW, 계정 미확인 등 인증 실패 처리
@@ -277,7 +277,7 @@ public class UserService {
             return cognitoClient.globalSignOut(signOutRequest);
 
         } catch (NotAuthorizedException e) {
-            // 🚨 2. (수정) "Invalid Access Token" 등 토큰이 유효하지 않을 때 발생하는 예외
+            // "Invalid Access Token" 등 토큰이 유효하지 않을 때 발생하는 예외
             // 이 예외는 이미 로그아웃되었거나, 토큰이 만료/위조된 경우 발생합니다.
             // 회원 탈퇴 API의 오류 메시지와 동일한 메시지를 던지도록 수정합니다.
             System.err.println("Cognito Global Sign Out (NotAuthorizedException): " + e.getMessage());
@@ -286,7 +286,7 @@ public class UserService {
             throw new RuntimeException("인증이 필요합니다. 유효한 토큰을 포함하여 요청하십시오.");
 
         } catch (Exception e) {
-            // 🚨 3. (수정) 그 외의 예상치 못한 오류 (예: Cognito 서비스 다운)
+            // 그 외의 예상치 못한 오류 (예: Cognito 서비스 다운)
             System.err.println("Cognito Global Sign Out (General Error): " + e.getMessage());
             
             // GlobalExceptionHandler가 이 메시지를 잡아 JSON으로 변환합니다.
@@ -299,11 +299,11 @@ public class UserService {
         String refreshToken = refreshRequest.refreshToken();
         String email = refreshRequest.email();
 
-        // 🚨 SECRET_HASH 계산 (기존 유틸리티 재사용)
+        // SECRET_HASH 계산 (기존 유틸리티 재사용)
         String secretHash = CognitoSecretHashUtil.calculateSecretHash(
                 clientId,
                 clientSecret,
-                email // Username (email)
+                email
         );
 
         // AuthParameters 구성 (REFRESH_TOKEN, SECRET_HASH 포함)
@@ -330,11 +330,11 @@ public class UserService {
     // 로그인된 사용자의 비밀번호 변경
     public void changePassword(String accessToken, ChangePasswordRequestDto request) {
         
-        // 3. Cognito API 요청 객체 생성
+        // Cognito API 요청 객체 생성
         ChangePasswordRequest cognitoRequest = ChangePasswordRequest.builder()
-            .accessToken(accessToken) // 4. 🚨 필터가 아닌 Controller에서 받은 Access Token
-            .previousPassword(request.currentPassword()) // 5. 현재 비밀번호
-            .proposedPassword(request.newPassword())      // 6. 새 비밀번호
+            .accessToken(accessToken) // 필터가 아닌 Controller에서 받은 Access Token
+            .previousPassword(request.currentPassword()) // 현재 비밀번호
+            .proposedPassword(request.newPassword())      // 새 비밀번호
             .build();
 
         try {
@@ -363,15 +363,15 @@ public class UserService {
     // 아이디(이메일) 중복 확인
     @Transactional(readOnly = true) // 읽기 전용 트랜잭션
     public String checkEmailAvailability(String email) {
-        // 1. DB에서 이메일 조회
+        // DB에서 이메일 조회
         Optional<User> existingUser = userRepository.findByEmail(email);
 
         if (existingUser.isPresent()) {
-            // 2. 🚨 이미 존재하면, 예외를 발생시킴
+            // 이미 존재하면, 예외를 발생시킴
             // (GlobalExceptionHandler가 400 Bad Request로 처리)
             throw new RuntimeException("이미 사용 중인 이메일입니다.");
         } else {
-            // 3. 존재하지 않으면, 성공 메시지 반환
+            // 존재하지 않으면, 성공 메시지 반환
             return "사용 가능한 이메일입니다.";
         }
     }

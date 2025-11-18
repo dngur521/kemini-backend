@@ -29,14 +29,14 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         AuthenticationException authException
     ) throws IOException, ServletException {
         
-        // 2. 사용자가 보던 바로 그 메시지를 사용
+        // 사용자가 보던 바로 그 메시지를 사용
         String message = "인증이 필요합니다. 유효한 토큰을 포함하여 요청하십시오.";
         ErrorResponse errorResponse = new ErrorResponse("UNAUTHORIZED", message);
         
-        // 3. ApiResponse로 래핑 (표준 응답)
+        // ApiResponse로 래핑 (표준 응답)
         ApiResponse<Void> apiResponse = ApiResponse.error(errorResponse);
 
-        // 4. Filter에서 했던 것과 동일하게 JSON 응답을 직접 작성
+        // Filter에서 했던 것과 동일하게 JSON 응답을 직접 작성
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
