@@ -2,6 +2,7 @@ package com.opensource.kemini_backend.controller;
 
 import com.opensource.kemini_backend.dto.ApiResponse; // 1. ApiResponse import
 import com.opensource.kemini_backend.dto.CheckEmailRequestDto;
+import com.opensource.kemini_backend.dto.FindAskIdRequestDto;
 import com.opensource.kemini_backend.dto.FindEmailRequestDto;
 import com.opensource.kemini_backend.dto.SignUpRequestDto;
 import com.opensource.kemini_backend.service.UserService;
@@ -130,6 +131,19 @@ public class AuthController {
         
         // 2. 성공 응답 반환 (ApiResponse.success(메시지))
         return ResponseEntity.ok(ApiResponse.success(successMessage));
+    }
+
+    // 전화번호로 회원 확인 및 보안 질문 ID 조회 API
+    @PostMapping("/find-ask-id")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> findAskId(
+        @RequestBody FindAskIdRequestDto request
+    ) {
+        Long askId = userService.findAskIdByPhoneNumber(request.phoneNumber());
+        
+        return ResponseEntity.ok(ApiResponse.success(
+            Map.of("askId", askId), 
+            "사용자 확인 성공. 보안 질문 ID를 반환합니다."
+        ));
     }
 
 }

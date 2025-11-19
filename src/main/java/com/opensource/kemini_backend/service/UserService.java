@@ -369,11 +369,25 @@ public class UserService {
         if (existingUser.isPresent()) {
             // 이미 존재하면, 예외를 발생시킴
             // (GlobalExceptionHandler가 400 Bad Request로 처리)
-            throw new RuntimeException("이미 사용 중인 이메일입니다.");
+            throw new RuntimeException("이미 사용 중인 아이디입니다.");
         } else {
             // 존재하지 않으면, 성공 메시지 반환
-            return "사용 가능한 이메일입니다.";
+            return "사용 가능한 아이디입니다.";
         }
+    }
+
+    // 전화번호로 회원을 찾고, 보안 질문 ID(askId)를 반환
+    @Transactional(readOnly = true)
+    public Long findAskIdByPhoneNumber(String phoneNumber) {
+        // 1. 전화번호 정규화 (010 -> +8210)
+        String normalizedPhone = normalizePhoneNumber(phoneNumber); //
+
+        // 2. DB 조회
+        User user = userRepository.findByPhoneNumber(normalizedPhone)
+                .orElseThrow(() -> new RuntimeException("가입되지 않은 전화번호입니다."));
+
+        // 3. askId 반환
+        return user.getAskId();
     }
     
 }
