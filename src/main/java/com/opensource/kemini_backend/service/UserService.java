@@ -150,10 +150,7 @@ public class UserService {
                 .orElseThrow(() -> new RuntimeException("답변이 일치하지 않습니다."));
     }
 
-    /**
-     * 비밀번호 재설정 (3단계)
-     * 전화번호 검증 로직을 제거하고 이메일+질문 만으로 검증
-     */
+    // 비밀번호 재설정 (3단계): 전화번호 검증 로직을 제거하고 이메일+질문 만으로 검증
     public void resetPasswordByQuestion(ResetPasswordByQuestionRequestDto request) {
         // 1. 전화번호 없이 이메일+질문+답변으로만 사용자 조회
         User user = userRepository.findByEmailAndAskIdAndAskAnswer(
