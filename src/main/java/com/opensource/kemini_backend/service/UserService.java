@@ -133,35 +133,46 @@ public class UserService {
         return user.getEmail();
     }
 
-    // 비밀번호 재설정 (보안 질문 기반)
+
+    // 비밀번호 찾기 1단계: 이메일로 askId 조회
+    @Transactional(readOnly = true)
+    public Long findAskIdByEmail(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("가입되지 않은 아이디입니다."));
+        return user.getAskId();
+    }
+
+    // 비밀번호 찾기 2단계: 질문 답변 검증
+    @Transactional(readOnly = true)
+    public void verifySecurityQuestion(String email, Long askId, String askAnswer) {
+        // 사용자가 존재하는지 확인 (없으면 예외 발생)
+        userRepository.findByEmailAndAskIdAndAskAnswer(email, askId, askAnswer)
+                .orElseThrow(() -> new RuntimeException("답변이 일치하지 않습니다."));
+    }
+
+    /**
+     * 비밀번호 재설정 (3단계)
+     * 전화번호 검증 로직을 제거하고 이메일+질문 만으로 검증
+     */
     public void resetPasswordByQuestion(ResetPasswordByQuestionRequestDto request) {
-        String normalizedPhone = normalizePhoneNumber(request.phoneNumber());
+        // 1. 전화번호 없이 이메일+질문+답변으로만 사용자 조회
+        User user = userRepository.findByEmailAndAskIdAndAskAnswer(
+                request.email(),
+                request.askId(),
+                request.askAnswer()
+        ).orElseThrow(() -> new RuntimeException("입력한 정보가 일치하지 않습니다."));
 
-        // DB에서 이메일로 사용자를 찾음
-        User user = userRepository.findByEmail(request.email())
-            .orElseThrow(() -> new RuntimeException("일치하는 사용자 정보가 없습니다."));
-
-        // DB 정보와 입력된 정보가 모두 일치하는지 확인
-        if (!user.getPhoneNumber().equals(normalizedPhone) ||
-            !user.getAskId().equals(request.askId()) ||
-            !user.getAskAnswer().equals(request.askAnswer())) 
-        {
-            // 하나라도 틀리면 예외
-            throw new RuntimeException("입력한 정보가 일치하지 않습니다.");
-        }
-
-        // 모든 정보가 일치하면, Cognito 비밀번호를 강제 재설정
+        // 2. Cognito 비밀번호 강제 재설정 (기존 동일)
         AdminSetUserPasswordRequest adminSetPasswordRequest = AdminSetUserPasswordRequest.builder()
             .userPoolId(userPoolId)
             .username(request.email())
             .password(request.newPassword())
-            .permanent(true) // true로 설정해야 사용자가 로그인 가능
+            .permanent(true)
             .build();
 
         try {
             cognitoClient.adminSetUserPassword(adminSetPasswordRequest);
         } catch (Exception e) {
-            // (예: Cognito 비밀번호 정책 위반 시)
             throw new RuntimeException("Cognito 비밀번호 재설정 실패: " + e.getMessage());
         }
     }

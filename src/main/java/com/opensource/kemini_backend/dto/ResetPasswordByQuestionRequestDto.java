@@ -5,7 +5,6 @@ package com.opensource.kemini_backend.dto;
  */
 public record ResetPasswordByQuestionRequestDto(
     String email,
-    String phoneNumber,
     Long askId,
     String askAnswer,
     String newPassword

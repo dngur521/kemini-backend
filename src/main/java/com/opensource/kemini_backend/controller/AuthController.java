@@ -4,6 +4,8 @@ import com.opensource.kemini_backend.dto.ApiResponse; // 1. ApiResponse import
 import com.opensource.kemini_backend.dto.CheckEmailRequestDto;
 import com.opensource.kemini_backend.dto.FindAskIdRequestDto;
 import com.opensource.kemini_backend.dto.FindEmailRequestDto;
+import com.opensource.kemini_backend.dto.FindPasswordStep1RequestDto;
+import com.opensource.kemini_backend.dto.FindPasswordStep2RequestDto;
 import com.opensource.kemini_backend.dto.SignUpRequestDto;
 import com.opensource.kemini_backend.service.UserService;
 import com.opensource.kemini_backend.dto.LoginRequestDto;
@@ -99,15 +101,43 @@ public class AuthController {
                 "아이디 찾기에 성공했습니다."));
     }
 
-    // 비밀번호 재설정 API (보안 질문 기반)
+    // 비밀번호 찾기 Step 1: 이메일 입력 -> askId 반환
+    @PostMapping("/find-password/step1")
+    public ResponseEntity<ApiResponse<Map<String, Long>>> findPasswordStep1(
+        @RequestBody FindPasswordStep1RequestDto request
+    ) {
+        Long askId = userService.findAskIdByEmail(request.email());
+        
+        return ResponseEntity.ok(ApiResponse.success(
+            Map.of("askId", askId), 
+            "사용자 확인 성공. 보안 질문 ID를 반환합니다."
+        ));
+    }
+
+    // 비밀번호 찾기 Step 2: 답변 검증
+    @PostMapping("/find-password/step2")
+    public ResponseEntity<ApiResponse<Void>> findPasswordStep2(
+        @RequestBody FindPasswordStep2RequestDto request
+    ) {
+        userService.verifySecurityQuestion(
+            request.email(), 
+            request.askId(), 
+            request.askAnswer()
+        );
+        
+        return ResponseEntity.ok(ApiResponse.success("답변 검증 성공. 비밀번호 재설정 화면으로 이동하세요."));
+    }
+
+    // 비밀번호 재설정 (Step 3)
     @PostMapping("/reset-password-by-question")
     public ResponseEntity<ApiResponse<Void>> resetPasswordByQuestion(
         @RequestBody ResetPasswordByQuestionRequestDto request
     ) {
         userService.resetPasswordByQuestion(request);
-
+        
         return ResponseEntity.ok(ApiResponse.success(
-                "비밀번호가 성공적으로 재설정되었습니다. 새 비밀번호로 로그인해주세요."));
+            "비밀번호가 성공적으로 재설정되었습니다. 새 비밀번호로 로그인해주세요."
+        ));
     }
     
     // 보안 질문 목록 조회 API

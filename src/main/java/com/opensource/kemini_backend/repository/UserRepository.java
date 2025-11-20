@@ -22,4 +22,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
         Long askId, 
         String askAnswer
     );
+
+    // 이메일 + 질문ID + 답변으로 사용자 조회
+    // (비밀번호 찾기 2단계 및 3단계에서 사용)
+    Optional<User> findByEmailAndAskIdAndAskAnswer(
+        String email, 
+        Long askId, 
+        String askAnswer
+    );
 }
