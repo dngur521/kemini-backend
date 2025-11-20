@@ -96,7 +96,7 @@ public class AuthController {
         // 이메일 정보를 data에 담아 반환
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("email", email),
-                "이메일 찾기에 성공했습니다."));
+                "아이디 찾기에 성공했습니다."));
     }
 
     // 비밀번호 재설정 API (보안 질문 기반)
