@@ -133,7 +133,6 @@ public class UserService {
         return user.getEmail();
     }
 
-
     // 비밀번호 찾기 1단계: 이메일로 askId 조회
     @Transactional(readOnly = true)
     public Long findAskIdByEmail(String email) {
