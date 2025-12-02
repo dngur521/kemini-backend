@@ -1,12 +1,10 @@
 package com.opensource.kemini_backend.dto;
 
-/**
- * 가상환경 생성/조회 응답 DTO
- */
+import java.util.List;
+
 public record VirtualEnvironmentResponseDto(
     Long id,
     String name,
-    String s3FileUrl,
-    Long userId
-) {
-}
+    Long userId,
+    List<EnvironmentFileDto> files // 🚨 단일 URL 대신 파일 리스트 반환
+) {}

@@ -5,6 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "virtual_environments")
 @Getter
@@ -12,23 +15,22 @@ import lombok.Setter;
 @NoArgsConstructor
 public class VirtualEnvironment {
 
-    // virtualEnvId PK
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; 
+    private Long id;
 
-    // 가상환경 이름
     @Column(nullable = false)
-    private String name; 
+    private String name;
 
-    // S3 버킷의 경로 (e.g, users/1/123/scene.dat)
-    @Column(name = "s3_object_key", unique = true)
-    private String s3ObjectKey; 
+    // 🚨 (삭제됨) private String s3ObjectKey; 
 
-    // user_id: 회원 id (FK)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    private User user; 
+    private User user;
+
+    // 🚨 (새로 추가) 1:N 관계 설정
+    @OneToMany(mappedBy = "virtualEnvironment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EnvironmentFile> files = new ArrayList<>();
 
     public VirtualEnvironment(User user, String name) {
         this.user = user;
